@@ -21,8 +21,8 @@ class OpenAI(ModelProvider):
         tokenizer: A tokenizer instance for encoding and decoding text to and from token representations.
     """
         
-    DEFAULT_MODEL_KWARGS: dict = dict(max_tokens  = 300,
-                                      temperature = 0)
+    DEFAULT_MODEL_KWARGS: dict = dict(max_tokens=300,
+                                     temperature=0)
 
     def __init__(self,
                  model_name: str = "gpt-3.5-turbo-0125",
@@ -33,19 +33,30 @@ class OpenAI(ModelProvider):
         Args:
             model_name (str): The name of the OpenAI model to use. Defaults to 'gpt-3.5-turbo-0125'.
             model_kwargs (dict): Model configuration. Defaults to {max_tokens: 300, temperature: 0}.
-        
-        Raises:
-            ValueError: If NIAH_MODEL_API_KEY is not found in the environment.
         """
-        api_key = os.getenv('NIAH_MODEL_API_KEY')
-        if (not api_key):
-            raise ValueError("NIAH_MODEL_API_KEY must be in env.")
+        # Set dummy API key for vLLM compatibility
+        api_key = os.getenv('NIAH_MODEL_API_KEY', 'dummy-key')
+        
+        # Don't raise an error if the API key is missing
+        # Instead, set a default one for vLLM
+        if not api_key:
+            api_key = "dummy-key"
+            os.environ['NIAH_MODEL_API_KEY'] = api_key
+        
+        # Point to the vLLM server
+        base_url = os.getenv('OPENAI_API_BASE', 'http://localhost:8000/v1')
 
         self.model_name = model_name
         self.model_kwargs = model_kwargs
         self.api_key = api_key
-        self.model = AsyncOpenAI(api_key=self.api_key)
-        self.tokenizer = tiktoken.encoding_for_model(self.model_name)
+        self.model = AsyncOpenAI(api_key=self.api_key, base_url=base_url)
+        
+        # Use a default tokenizer if the model-specific one isn't available
+        try:
+            self.tokenizer = tiktoken.encoding_for_model(self.model_name)
+        except:
+            print(f"Warning: Tokenizer not found for {model_name}, using cl100k_base instead")
+            self.tokenizer = tiktoken.get_encoding("cl100k_base")
     
     async def evaluate_model(self, prompt: str) -> str:
         """

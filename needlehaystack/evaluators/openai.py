@@ -16,10 +16,10 @@ class OpenAIEvaluator(Evaluator):
                 Only respond with a numberical score"""}
 
     def __init__(self,
-                 model_name: str = "gpt-3.5-turbo-0125",
-                 model_kwargs: dict = DEFAULT_MODEL_KWARGS,
-                 true_answer: str = None,
-                 question_asked: str = None,):
+                model_name: str = "gpt-3.5-turbo-0125",
+                model_kwargs: dict = DEFAULT_MODEL_KWARGS,
+                true_answer: str = None,
+                question_asked: str = None,):
         """
         :param model_name: The name of the model.
         :param model_kwargs: Model configuration. Default is {temperature: 0}
@@ -30,20 +30,76 @@ class OpenAIEvaluator(Evaluator):
         if (not true_answer) or (not question_asked):
             raise ValueError("true_answer and question_asked must be supplied with init.")
 
-        self.model_name = model_name
+        # Force the model to use the one available in vLLM
+        self.model_name = os.getenv("EVALUATOR_MODEL_NAME", "meta-llama/Llama-3.1-8B-Instruct")
         self.model_kwargs = model_kwargs
         self.true_answer = true_answer
         self.question_asked = question_asked
 
-        api_key = os.getenv('NIAH_EVALUATOR_API_KEY')
+        # Use dummy API key for vLLM
+        api_key = os.getenv('NIAH_EVALUATOR_API_KEY', 'dummy-key')
         if (not api_key):
-            raise ValueError("NIAH_EVALUATOR_API_KEY must be in env for using openai evaluator.")
-
+            api_key = "dummy-key"
+            os.environ['NIAH_EVALUATOR_API_KEY'] = api_key
+        
         self.api_key = api_key
         
-        self.evaluator = ChatOpenAI(model=self.model_name,
-                                    openai_api_key=self.api_key,
-                                    **self.model_kwargs)
+        # Use custom base URL if provided
+        base_url = os.getenv('OPENAI_EVAL_API_BASE', os.getenv('OPENAI_API_BASE'))
+        
+        # Initialize the evaluator with optional base_url
+        self.evaluator = ChatOpenAI(
+            model=self.model_name,
+            openai_api_key=self.api_key,
+            openai_api_base=base_url,
+            **self.model_kwargs
+        )
+
+    # def __init__(self,
+    #              model_name: str = "gpt-3.5-turbo-0125",
+    #              model_kwargs: dict = DEFAULT_MODEL_KWARGS,
+    #              true_answer: str = None,
+    #              question_asked: str = None,):
+    #     """
+    #     :param model_name: The name of the model.
+    #     :param model_kwargs: Model configuration. Default is {temperature: 0}
+    #     :param true_answer: The true answer to the question asked.
+    #     :param question_asked: The question asked to the model.
+    #     """
+
+    #     if (not true_answer) or (not question_asked):
+    #         raise ValueError("true_answer and question_asked must be supplied with init.")
+
+    #     self.model_name = model_name
+    #     self.model_kwargs = model_kwargs
+    #     self.true_answer = true_answer
+    #     self.question_asked = question_asked
+
+    #     # Get API key or set a dummy key for vLLM
+    #     api_key = os.getenv('NIAH_EVALUATOR_API_KEY', 'dummy-key')
+    #     if not api_key:
+    #         api_key = "dummy-key"
+    #         os.environ['NIAH_EVALUATOR_API_KEY'] = api_key
+        
+    #     self.api_key = api_key
+        
+    #     # Get base_url for vLLM if set
+    #     base_url = os.getenv('OPENAI_EVAL_API_BASE', os.getenv('OPENAI_API_BASE', None))
+        
+    #     # Initialize the evaluator with optional base_url
+    #     if base_url:
+    #         self.evaluator = ChatOpenAI(
+    #             model=self.model_name,
+    #             openai_api_key=self.api_key,
+    #             openai_api_base=base_url,
+    #             **self.model_kwargs
+    #         )
+    #     else:
+    #         self.evaluator = ChatOpenAI(
+    #             model=self.model_name,
+    #             openai_api_key=self.api_key,
+    #             **self.model_kwargs
+    #         )
 
     def evaluate_response(self, response: str) -> int:
         evaluator = load_evaluator(

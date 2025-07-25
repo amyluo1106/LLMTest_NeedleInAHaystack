@@ -191,7 +191,7 @@ class LLMNeedleHaystackTester:
             if not os.path.exists('contexts'):
                 os.makedirs('contexts')
 
-            with open(f'contexts/{context_file_location}_context.txt', 'w') as f:
+            with open(f'/home/amyluo/workplace/LLMTest_NeedleInAHaystack/contexts/{context_file_location}_context.txt', 'w') as f:
                 f.write(context)
             
         if self.save_results:

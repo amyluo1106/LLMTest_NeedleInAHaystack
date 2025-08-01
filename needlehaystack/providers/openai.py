@@ -68,6 +68,8 @@ class OpenAI(ModelProvider):
         Returns:
             str: The content of the model's response to the prompt.
         """
+        # print("FINAL PROMPT")
+        # print(prompt)
         response = await self.model.chat.completions.create(
                 model=self.model_name,
                 messages=prompt,

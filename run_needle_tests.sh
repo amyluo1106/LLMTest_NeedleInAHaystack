@@ -2,7 +2,6 @@
 
 # Define the context lengths and document depth percentages
 CONTEXT_LENGTHS=(2000 6000 10000 15000 21000 25000 29000 33000 37000 41000)
-CONTEXT_LENGTHS=(33000 37000 41000)
 DOCUMENT_DEPTHS=(0 25 50 75 100)
 MODEL_NAME="meta-llama/Llama-3.1-8B-Instruct"
 REPEATS=2  # Run each test this many times

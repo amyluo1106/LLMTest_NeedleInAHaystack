@@ -281,16 +281,44 @@ class LLMNeedleHaystackTester:
     def get_context_length_in_tokens(self, context):
         return len(self.model_to_test.encode_text_to_tokens(context))
 
+    # def read_context_files(self):
+    #     context = ""
+    #     max_context_length = max(self.context_lengths)
+    #     base_dir = os.path.abspath(os.path.dirname(__file__))  # Package directory
+
+    #     while self.get_context_length_in_tokens(context) < max_context_length:
+    #         for file in glob.glob(os.path.join(base_dir, self.haystack_dir, "*.txt")):
+    #             with open(file, 'r') as f:
+    #                 context += f.read()
+    #     return context
+
+    # LMCache version
     def read_context_files(self):
-        context = ""
+        context_parts = []
         max_context_length = max(self.context_lengths)
         base_dir = os.path.abspath(os.path.dirname(__file__))  # Package directory
-
-        while self.get_context_length_in_tokens(context) < max_context_length:
-            for file in glob.glob(os.path.join(base_dir, self.haystack_dir, "*.txt")):
-                with open(file, 'r') as f:
-                    context += f.read()
+        
+        # Get all context files
+        context_files = glob.glob(os.path.join(base_dir, self.haystack_dir, "*.txt"))
+        
+        # Read each file and add to context_parts
+        for file in context_files:
+            with open(file, 'r') as f:
+                file_content = f.read().strip()
+                if file_content:  # Only add non-empty content
+                    context_parts.append(file_content)
+                    
+            # Check if we have enough context already
+            if context_parts:
+                # Calculate rough estimate of token count - this is just to avoid reading too many files
+                current_context = " # # ".join(context_parts)
+                if self.get_context_length_in_tokens(current_context) >= max_context_length:
+                    break
+        
+        # Join all parts with the blend separator
+        context = " # # ".join(context_parts)
         return context
+
 
     def encode_and_trim(self, context, context_length):
         tokens = self.model_to_test.encode_text_to_tokens(context)
